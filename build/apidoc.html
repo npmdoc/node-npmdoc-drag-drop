@@ -1,0 +1,247 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+        href="https://github.com/feross/drag-drop"
+
+    >drag-drop (v2.13.2)</a>
+</h1>
+<h4>HTML5 drag & drop for humans</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.drag-drop">module drag-drop</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.drag-drop.drag-drop">
+            function <span class="apidocSignatureSpan"></span>drag-drop
+            <span class="apidocSignatureSpan">(elem, listeners)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.drag-drop" id="apidoc.module.drag-drop">module drag-drop</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.drag-drop.drag-drop" id="apidoc.element.drag-drop.drag-drop">
+        function <span class="apidocSignatureSpan"></span>drag-drop
+        <span class="apidocSignatureSpan">(elem, listeners)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function dragDrop(elem, listeners) {
+  if (typeof elem === &#x27;string&#x27;) {
+    var selector = elem
+    elem = window.document.querySelector(elem)
+    if (!elem) {
+      throw new Error(&#x27;&#x22;&#x27; + selector + &#x27;&#x22; does not match any HTML elements&#x27;)
+    }
+  }
+
+  if (!elem) {
+    throw new Error(&#x27;&#x22;&#x27; + elem + &#x27;&#x22; is not a valid HTML element&#x27;)
+  }
+
+  if (typeof listeners === &#x27;function&#x27;) {
+    listeners = { onDrop: listeners }
+  }
+
+  var timeout
+
+  elem.addEventListener(&#x27;dragenter&#x27;, onDragEnter, false)
+  elem.addEventListener(&#x27;dragover&#x27;, onDragOver, false)
+  elem.addEventListener(&#x27;dragleave&#x27;, onDragLeave, false)
+  elem.addEventListener(&#x27;drop&#x27;, onDrop, false)
+
+  // Function to remove drag-drop listeners
+  return function remove () {
+    removeDragClass()
+    elem.removeEventListener(&#x27;dragenter&#x27;, onDragEnter, false)
+    elem.removeEventListener(&#x27;dragover&#x27;, onDragOver, false)
+    elem.removeEventListener(&#x27;dragleave&#x27;, onDragLeave, false)
+    elem.removeEventListener(&#x27;drop&#x27;, onDrop, false)
+  }
+
+  function onDragEnter (e) {
+    if (listeners.onDragEnter) {
+      listeners.onDragEnter(e)
+    }
+
+    // Prevent event
+    e.stopPropagation()
+    e.preventDefault()
+    return false
+  }
+
+  function onDragOver (e) {
+    e.stopPropagation()
+    e.preventDefault()
+    if (e.dataTransfer.items) {
+      // Only add &#x22;drag&#x22; class when `items` contains items that are able to be
+      // handled by the registered listeners (files vs. text)
+      var items = toArray(e.dataTransfer.items)
+      var fileItems = items.filter(function (item) { return item.kind === &#x27;file&#x27; })
+      var textItems = items.filter(function (item) { return item.kind === &#x27;string&#x27; })
+
+      if (fileItems.length === 0 &#x26;&#x26; !listeners.onDropText) return
+      if (textItems.length === 0 &#x26;&#x26; !listeners.onDrop) return
+      if (fileItems.length === 0 &#x26;&#x26; textItems.length === 0) return
+    }
+
+    elem.classList.add(&#x27;drag&#x27;)
+    clearTimeout(timeout)
+
+    if (listeners.onDragOver) {
+      listeners.onDragOver(e)
+    }
+
+    e.dataTransfer.dropEffect = &#x27;copy&#x27;
+    return false
+  }
+
+  function onDragLeave (e) {
+    e.stopPropagation()
+    e.preventDefault()
+
+    if (listeners.onDragLeave) {
+      listeners.onDragLeave(e)
+    }
+
+    clearTimeout(timeout)
+    timeout = setTimeout(removeDragClass, 50)
+
+    return false
+  }
+
+  function onDrop (e) {
+    e.stopPropagation()
+    e.preventDefault()
+
+    if (listeners.onDragLeave) {
+      listeners.onDragLeave(e)
+    }
+
+    clearTimeout(timeout)
+    removeDragClass()
+
+    var pos = {
+      x: e.clientX,
+      y: e.clientY
+    }
+
+    // text drop support
+    var text = e.dataTransfer.getData(&#x27;text&#x27;)
+    if (text &#x26;&#x26; listeners.onDropText) {
+      listeners.onDropText(text, pos)
+    }
+
+    // file drop support
+    if (e.dataTransfer.items) {
+      // Handle directories in Chrome using the proprietary FileSystem API
+      var items = toArray(e.dataTransfer.items).filter(function (item) {
+        return item.kind === &#x27;file&#x27;
+      })
+
+      if (items.length === 0) return
+
+      parallel(items.map(function (item) {
+        return function (cb) {
+          processEntry(item.webkitGetAsEntry(), cb)
+        }
+      }), function (err, results) {
+        // This catches permission errors with file:// in Chrome. This should never
+        // throw in production code, so the user does not need to use try-catch.
+        if (err) throw err
+        if (listeners.onDrop) {
+          listeners.onDrop(flatten(results), pos)
+        }
+      })
+    } else {
+      var files = toArray(e.dataTransfer.files)
+
+      if (files.length === 0) return
+
+      files.forEach(function (file) {
+        file.fullPath = &#x27;/&#x27; + file.name
+      })
+
+      if (listeners.onDrop) {
+        listeners.onDrop(files, pos)
+      }
+    }
+
+    return false
+  }
+
+  function removeDragClass () {
+    elem.classList.remove(&#x27;drag&#x27;)
+  }
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
